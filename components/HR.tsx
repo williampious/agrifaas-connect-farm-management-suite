@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { FarmDataContextType, Employee, Timesheet, Account } from '../types';
+import type { FarmDataContextType, Employee, Timesheet, Account, User } from '../types';
 import { Card } from './shared/Card';
 import { Table } from './shared/Table';
 import { Button } from './shared/Button';
@@ -53,9 +53,10 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose, ad
 
 interface HRProps {
     farmData: FarmDataContextType;
+    user: User;
 }
 
-export const HR: React.FC<HRProps> = ({ farmData }) => {
+export const HR: React.FC<HRProps> = ({ farmData, user }) => {
     const { employees, timesheets, addEmployee, addTimesheet, updateTimesheet, deleteTimesheet, addJournalEntry, accounts } = farmData;
     const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
     const [isTimesheetModalOpen, setIsTimesheetModalOpen] = useState(false);
@@ -63,6 +64,10 @@ export const HR: React.FC<HRProps> = ({ farmData }) => {
     const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
 
     const getEmployeeName = (employeeId: string) => employees.find(e => e.id === employeeId)?.name || 'N/A';
+    
+    const handleAddEmployee = (employeeData: Omit<Employee, 'id'>) => {
+        addEmployee(employeeData, user.name);
+    }
 
     const handleOpenAddTimesheet = () => {
         setEditingTimesheet(null);
@@ -76,16 +81,16 @@ export const HR: React.FC<HRProps> = ({ farmData }) => {
 
     const handleTimesheetSubmit = (data: Omit<Timesheet, 'id'> | Timesheet) => {
         if ('id' in data) {
-            updateTimesheet(data);
+            updateTimesheet(data, user.name);
         } else {
-            addTimesheet(data);
+            addTimesheet(data, user.name);
         }
         setIsTimesheetModalOpen(false);
     };
     
     const handleDeleteTimesheet = (id: string) => {
         if (window.confirm('Are you sure you want to delete this timesheet entry?')) {
-            deleteTimesheet(id);
+            deleteTimesheet(id, user.name);
         }
     };
 
@@ -104,7 +109,7 @@ export const HR: React.FC<HRProps> = ({ farmData }) => {
 
     return (
         <>
-            <AddEmployeeModal isOpen={isEmployeeModalOpen} onClose={() => setIsEmployeeModalOpen(false)} addEmployee={addEmployee} />
+            <AddEmployeeModal isOpen={isEmployeeModalOpen} onClose={() => setIsEmployeeModalOpen(false)} addEmployee={handleAddEmployee} />
             <TimesheetModal 
                 isOpen={isTimesheetModalOpen}
                 onClose={() => setIsTimesheetModalOpen(false)}
@@ -118,7 +123,7 @@ export const HR: React.FC<HRProps> = ({ farmData }) => {
                 employees={employees}
                 timesheets={timesheets}
                 accounts={accounts}
-                addJournalEntry={addJournalEntry}
+                addJournalEntry={(entry) => addJournalEntry(entry, user.name)}
             />
             <div className="space-y-6">
                 <Card title="Employee Directory">

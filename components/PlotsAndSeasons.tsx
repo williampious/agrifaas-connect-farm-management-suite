@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { FarmDataContextType, Plot, Season } from '../types';
+import type { FarmDataContextType, Plot, Season, User } from '../types';
 import { Card } from './shared/Card';
 import { Table } from './shared/Table';
 import { Button } from './shared/Button';
@@ -115,7 +115,7 @@ const SeasonModal: React.FC<SeasonModalProps> = ({ isOpen, onClose, onSubmit, in
 };
 
 
-export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType }> = ({ farmData }) => {
+export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType, user: User }> = ({ farmData, user }) => {
     const { plots, addPlot, updatePlot, deletePlot, seasons, addSeason, updateSeason, deleteSeason } = farmData;
     const [isPlotModalOpen, setIsPlotModalOpen] = useState(false);
     const [editingPlot, setEditingPlot] = useState<Plot | null>(null);
@@ -139,16 +139,16 @@ export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType }> = ({ f
 
     const handleSubmitPlot = (plotData: Omit<Plot, 'id'> | Plot) => {
         if ('id' in plotData) {
-            updatePlot(plotData);
+            updatePlot(plotData, user.name);
         } else {
-            addPlot(plotData);
+            addPlot(plotData, user.name);
         }
         handleClosePlotModal();
     };
 
-    const handleDeletePlot = (plotId: string) => {
+    const handleDeletePlot = (plot: Plot) => {
         if (window.confirm('Are you sure you want to delete this plot? This action cannot be undone.')) {
-            deletePlot(plotId);
+            deletePlot(plot.id, user.name, plot.name);
         }
     };
     
@@ -169,16 +169,16 @@ export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType }> = ({ f
 
     const handleSubmitSeason = (seasonData: Omit<Season, 'id'> | Season) => {
         if ('id' in seasonData) {
-            updateSeason(seasonData);
+            updateSeason(seasonData, user.name);
         } else {
-            addSeason(seasonData);
+            addSeason(seasonData, user.name);
         }
         handleCloseSeasonModal();
     };
 
-    const handleDeleteSeason = (seasonId: string) => {
+    const handleDeleteSeason = (season: Season) => {
         if (window.confirm('Are you sure you want to delete this season? This action cannot be undone.')) {
-            deleteSeason(seasonId);
+            deleteSeason(season.id, user.name, `${season.name} ${season.year}`);
         }
     };
 
@@ -222,7 +222,7 @@ export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType }> = ({ f
                                 <Button variant="secondary" className="text-sm py-1 px-2" onClick={() => handleOpenEditPlotModal(plot)}>
                                     Edit
                                 </Button>
-                                <Button variant="danger" className="text-sm py-1 px-2" onClick={() => handleDeletePlot(plot.id)}>
+                                <Button variant="danger" className="text-sm py-1 px-2" onClick={() => handleDeletePlot(plot)}>
                                     Delete
                                 </Button>
                             </div>
@@ -241,7 +241,7 @@ export const PlotsAndSeasons: React.FC<{ farmData: FarmDataContextType }> = ({ f
                                 <Button variant="secondary" className="text-sm py-1 px-2" onClick={() => handleOpenEditSeasonModal(season)}>
                                     Edit
                                 </Button>
-                                <Button variant="danger" className="text-sm py-1 px-2" onClick={() => handleDeleteSeason(season.id)}>
+                                <Button variant="danger" className="text-sm py-1 px-2" onClick={() => handleDeleteSeason(season)}>
                                     Delete
                                 </Button>
                             </div>

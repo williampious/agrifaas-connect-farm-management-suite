@@ -6,6 +6,8 @@ interface SidebarProps {
     onSetView: (view: Feature) => void;
     features: Feature[];
     workspaceName: string;
+    isOpen: boolean;
+    onClose: () => void;
 }
 
 const featureIcons: Record<Feature, string> = {
@@ -18,17 +20,32 @@ const featureIcons: Record<Feature, string> = {
     AEO: '🧑‍🌾',
     'AI Insights': '💡',
     Admin: '⚙️',
+    Suppliers: '🚚',
+    'Harvest & Sales': '📈',
+    'How To': '📖',
+    'FAQ': '❓',
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSetView, features, workspaceName }) => {
+const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSetView, features, workspaceName, isOpen, onClose }) => {
     return (
-        <aside className="w-64 bg-white flex-shrink-0 flex-col border-r hidden md:flex">
-            <div className="h-16 flex items-center justify-center border-b px-4">
+        <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white flex-shrink-0 flex flex-col border-r transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="h-16 flex items-center justify-between border-b px-4 flex-shrink-0">
                 <h2 className="text-xl font-bold text-gray-800 truncate">
                     {workspaceName}
                 </h2>
+                 <button onClick={onClose} className="md:hidden text-gray-500 hover:text-gray-800">
+                     <span className="sr-only">Close sidebar</span>
+                     <XIcon className="h-6 w-6" />
+                </button>
             </div>
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 {features.map((feature) => (
                     <button
                         key={feature}

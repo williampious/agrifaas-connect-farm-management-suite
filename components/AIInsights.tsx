@@ -1,10 +1,10 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { Card } from './shared/Card';
 import { Button } from './shared/Button';
 import { UploadIcon } from '../constants';
 import * as geminiService from '../services/geminiService';
-import { uploadPlantImage } from '../services/imageStorageService';
 import { Input } from './shared/Input';
 import type { FarmDataContextType } from '../types';
 
@@ -68,12 +68,9 @@ export const AIInsights: React.FC<{ farmData: FarmDataContextType }> = ({ farmDa
         }
     }, []);
 
-    const handleDiagnosePlant = async () => {
+    const handleDiagnosePlant = () => {
         if (!plantImage) return;
-        await handleAICall('plantDoctor', async () => {
-            await uploadPlantImage(plantImage);
-            return geminiService.diagnosePlant(plantImage);
-        }, (res) => res);
+        handleAICall('plantDoctor', () => geminiService.diagnosePlant(plantImage), (res) => res);
     };
     
     const handlePlantingAdvice = () => {
@@ -153,7 +150,6 @@ export const AIInsights: React.FC<{ farmData: FarmDataContextType }> = ({ farmDa
                             {isLoading.yieldPredictor ? 'Predicting...' : 'Predict Yield'}
                         </Button>
                         {isLoading.yieldPredictor && <div className="mt-2 text-sm text-gray-600">AI is thinking...</div>}
-                        {/* FIX: Corrected typo in component name from AIResultДисплей to AIResultDisplay. */}
                         {results.yieldPredictor && <AIResultDisplay title="Yield Prediction" content={results.yieldPredictor} />}
                     </div>
                      <hr/>

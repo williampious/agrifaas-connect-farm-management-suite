@@ -11,7 +11,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ farmData, user }) => {
-    const { tasks, plots, journalEntries, accounts } = farmData;
+    const { tasks, plots, journalEntries, accounts, inventory } = farmData;
 
     const taskSummary = useMemo(() => {
         return tasks.reduce((acc, task) => {
@@ -67,6 +67,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ farmData, user }) => {
 
         return Object.values(plotData);
     }, [plots, journalEntries, accounts]);
+    
+    const lowStockItems = useMemo(() => {
+        return inventory.filter(item => 
+            item.reorderPoint !== undefined && item.quantity <= item.reorderPoint
+        ).sort((a,b) => (a.quantity / (a.reorderPoint || 1)) - (b.quantity / (b.reorderPoint || 1))); // Sort by severity
+    }, [inventory]);
 
 
     return (
@@ -101,12 +107,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ farmData, user }) => {
                         </div>
                     </div>
                 </Card>
-                 <Card title="Quick Links" className="col-span-1">
-                    <ul className="space-y-2">
-                        <li><a href="#" className="text-green-600 hover:underline">Add New Task</a></li>
-                        <li><a href="#" className="text-green-600 hover:underline">Log Expense</a></li>
-                        <li><a href="#" className="text-green-600 hover:underline">View Inventory</a></li>
-                    </ul>
+                 <Card title="Inventory Alerts" className="col-span-1">
+                    {lowStockItems.length > 0 ? (
+                        <ul className="space-y-2 max-h-48 overflow-y-auto">
+                            {lowStockItems.map(item => (
+                                <li key={item.id} className={`text-sm p-2 rounded-md ${item.quantity <= 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                                    <p className={`font-semibold ${item.quantity <= 0 ? 'text-red-800' : 'text-yellow-800'}`}>{item.name}</p>
+                                    <div className="flex justify-between text-xs">
+                                        <span className={item.quantity <= 0 ? 'text-red-700' : 'text-yellow-700'}>Current: {item.quantity} {item.unit}</span>
+                                        <span className="text-gray-500">Reorder at: {item.reorderPoint} {item.unit}</span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                            <span className="text-3xl">✅</span>
+                            <p className="mt-2 text-sm font-medium">All inventory levels are good.</p>
+                        </div>
+                    )}
                 </Card>
                 <Card title={`Profitability by Plot (${DEFAULT_CURRENCY})`} className="col-span-1 md:col-span-2 lg:col-span-4">
                      <ResponsiveContainer width="100%" height={300}>

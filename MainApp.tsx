@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { User, Workspace, Feature, Task, Role } from '../types';
 import { useFarmData } from '../hooks/useFarmData';
@@ -11,10 +13,6 @@ import { AEO } from './AEO';
 import { AIInsights } from './AIInsights';
 import { Admin } from './Admin';
 import { PlotsAndSeasons } from './PlotsAndSeasons';
-import { Suppliers } from './Suppliers';
-import { HarvestAndSales } from './HarvestAndSales';
-import { HowToPage } from './HowToPage';
-import { FAQPage } from './FAQPage';
 import { TaskDetailModal } from './TaskDetailModal';
 import { ProfileModal } from './ProfileModal';
 import { Avatar } from './shared/Avatar';
@@ -31,16 +29,7 @@ interface MainAppProps {
     onInviteUser: (workspaceId: string, email: string, role: Role) => void;
     onRevokeInvitation: (workspaceId: string, email: string) => void;
     onUpdateFeaturePermissions: (workspaceId: string, newPermissions: Workspace['permissions']) => void;
-    onExportWorkspaceData: (workspaceId: string) => void;
-    onUpdateUserRole: (workspaceId: string, userId: string, role: Role) => void;
-    onUpdateUser: (user: User) => void;
 }
-
-const MenuIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-    </svg>
-);
 
 export const MainApp: React.FC<MainAppProps> = ({ 
     user, 
@@ -52,14 +41,10 @@ export const MainApp: React.FC<MainAppProps> = ({
     onInviteUser,
     onRevokeInvitation,
     onUpdateFeaturePermissions,
-    onExportWorkspaceData,
-    onUpdateUserRole,
-    onUpdateUser
 }) => {
     const [currentView, setCurrentView] = useState<Feature>('Dashboard');
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     const farmData = useFarmData(workspace.id);
 
@@ -68,17 +53,13 @@ export const MainApp: React.FC<MainAppProps> = ({
         return allUsers.filter(u => memberIds.includes(u.id));
     }, [workspace.members, allUsers]);
     
+    // FIX: Change invalid fallback role 'viewer' to a valid role 'member'.
     const currentUserRole = workspace.members[user.id]?.role || 'member';
 
     const enabledFeatures = useMemo(() => {
-        const platformPermissions = (Object.keys(workspace.permissions) as Feature[]).filter(
+        return (Object.keys(workspace.permissions) as Feature[]).filter(
             f => workspace.permissions[f]?.enabled && workspace.permissions[f]?.allowedRoles.includes(currentUserRole)
         );
-        // Ensure Admin is always available to owners
-        if (currentUserRole === 'owner' && !platformPermissions.includes('Admin')) {
-            platformPermissions.push('Admin');
-        }
-        return platformPermissions;
     }, [workspace.permissions, currentUserRole]);
 
 
@@ -107,26 +88,16 @@ export const MainApp: React.FC<MainAppProps> = ({
                 return <PlotsAndSeasons farmData={farmData} user={user} />;
             case 'AEO':
                 return <AEO farmData={farmData} user={user} />;
+            // FIX: Correct typo from 'AIInsights' to 'AI Insights'
             case 'AI Insights':
                 return <AIInsights farmData={farmData} />;
-            case 'Suppliers':
-                return <Suppliers farmData={farmData} user={user} />;
-            case 'Harvest & Sales':
-                return <HarvestAndSales farmData={farmData} user={user} />;
-            case 'How To':
-                return <HowToPage />;
-            case 'FAQ':
-                return <FAQPage />;
             case 'Admin':
                 return <Admin 
                     workspace={workspace}
                     workspaceUsers={workspaceUsers}
-                    farmData={farmData}
                     onInviteUser={onInviteUser}
                     onRevokeInvitation={onRevokeInvitation}
                     onUpdateFeaturePermissions={onUpdateFeaturePermissions}
-                    onExportWorkspaceData={onExportWorkspaceData}
-                    onUpdateUserRole={onUpdateUserRole}
                 />;
             default:
                 return <div>Select a feature</div>;
@@ -143,56 +114,29 @@ export const MainApp: React.FC<MainAppProps> = ({
                     onAddTaskComment={(taskId, comment) => farmData.addTaskComment(taskId, comment, user.name)}
                     allUsers={workspaceUsers}
                     allPlots={farmData.plots}
-                    inventory={farmData.inventory}
                     currentUser={user}
                 />
             )}
-            <ProfileModal 
-                isOpen={isProfileModalOpen} 
-                onClose={() => setIsProfileModalOpen(false)} 
-                user={user} 
-                onLogout={onLogout} 
-                onUpdateUser={onUpdateUser}
-            />
-            
-            {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
-                    aria-hidden="true"
-                />
-            )}
+            <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} onLogout={onLogout} />
 
             <div className="flex h-screen bg-gray-100 font-sans">
                 <Sidebar
                     currentView={currentView}
-                    onSetView={(view) => {
-                        setCurrentView(view);
-                        setIsSidebarOpen(false); // Close sidebar on mobile navigation
-                    }}
+                    onSetView={setCurrentView}
                     features={enabledFeatures}
                     workspaceName={workspace.name}
-                    isOpen={isSidebarOpen}
-                    onClose={() => setIsSidebarOpen(false)}
                 />
                 <main className="flex-1 flex flex-col overflow-hidden">
                     {impersonatingUser && <ImpersonationBanner userName={impersonatingUser.name} onExit={onExitImpersonation} />}
                     <header className="flex justify-between items-center p-4 bg-white border-b">
-                         <div className="flex items-center space-x-4">
-                            <button onClick={() => setIsSidebarOpen(true)} className="text-gray-600 md:hidden" aria-label="Open sidebar">
-                                <MenuIcon className="h-6 w-6" />
-                            </button>
-                             <h1 className="text-2xl font-semibold text-gray-800">{currentView}</h1>
-                         </div>
-                         <div className="flex items-center space-x-4">
-                             <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center space-x-2">
-                                 <span className="hidden sm:inline text-right">
-                                     <span className="font-semibold text-gray-700">{user.name}</span>
-                                     <span className="block text-xs text-gray-500 capitalize">{currentUserRole}</span>
-                                 </span>
-                                 <Avatar name={user.name} />
-                             </button>
-                         </div>
+                         <h1 className="text-2xl font-semibold text-gray-800">{currentView}</h1>
+                         <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center space-x-2">
+                             <span className="hidden sm:inline text-right">
+                                 <span className="font-semibold text-gray-700">{user.name}</span>
+                                 <span className="block text-xs text-gray-500 capitalize">{currentUserRole}</span>
+                             </span>
+                             <Avatar name={user.name} />
+                         </button>
                     </header>
                     <div className="flex-1 p-6 overflow-y-auto">
                         {renderContent()}

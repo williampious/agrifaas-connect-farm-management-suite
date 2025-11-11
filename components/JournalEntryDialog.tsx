@@ -31,8 +31,8 @@ export const JournalEntryDialog: React.FC<JournalEntryDialogProps> = ({ isOpen, 
         accountId: availableAccounts[0]?.id || '',
         type: 'debit',
         amount: 0,
-        plotId: null,
-        seasonId: null,
+        plotId: undefined,
+        seasonId: undefined,
     }), [availableAccounts]);
 
 
@@ -69,7 +69,7 @@ export const JournalEntryDialog: React.FC<JournalEntryDialogProps> = ({ isOpen, 
         if (field === 'amount') {
             line.amount = Number(value);
         } else if (field === 'plotId' || field === 'seasonId') {
-            line[field] = value === 'none' ? null : value;
+            line[field] = value === 'none' ? undefined : value;
         } 
         else {
             line[field] = value;

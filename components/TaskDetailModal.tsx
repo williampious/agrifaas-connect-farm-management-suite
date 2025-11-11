@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Task, User, Plot, Comment } from '../types';
+import type { Task, User, Plot, Comment, InventoryItem, InventoryConsumption } from '../types';
 import { TaskStatus } from '../types';
 import { Modal } from './shared/Modal';
 import { Button } from './shared/Button';
@@ -12,6 +12,7 @@ interface TaskDetailModalProps {
     onAddTaskComment: (taskId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
     allUsers: User[];
     allPlots: Plot[];
+    inventory: InventoryItem[];
     currentUser: User;
 }
 
@@ -22,6 +23,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     onAddTaskComment,
     allUsers,
     allPlots,
+    inventory,
     currentUser
 }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -48,26 +50,103 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             setNewComment('');
         }
     };
+
+    const handleInventoryChange = (index: number, field: keyof InventoryConsumption, value: string | number) => {
+        const newConsumed = [...(editedTask.inventoryConsumed || [])];
+        (newConsumed[index] as any)[field] = value;
+        setEditedTask({ ...editedTask, inventoryConsumed: newConsumed });
+    };
+
+    const addInventoryLine = () => {
+        const newConsumed = [...(editedTask.inventoryConsumed || []), { inventoryId: '', quantityUsed: 0 }];
+        setEditedTask({ ...editedTask, inventoryConsumed: newConsumed });
+    };
+
+    const removeInventoryLine = (index: number) => {
+        const newConsumed = (editedTask.inventoryConsumed || []).filter((_, i) => i !== index);
+        setEditedTask({ ...editedTask, inventoryConsumed: newConsumed });
+    };
+
+    const renderConsumedInventory = (isEditMode: boolean) => (
+        <div className="pt-4 border-t">
+            <h4 className="font-semibold text-lg mb-2">Consumed Materials</h4>
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                {!editedTask.inventoryConsumed || editedTask.inventoryConsumed.length === 0 ? (
+                    <p className="text-sm text-gray-500">No materials linked to this task.</p>
+                ) : (
+                    editedTask.inventoryConsumed.map((consumed, index) => {
+                        const item = inventory.find(i => i.id === consumed.inventoryId);
+                        if (isEditMode) {
+                            return (
+                                <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                                    <select
+                                        value={consumed.inventoryId}
+                                        onChange={e => handleInventoryChange(index, 'inventoryId', e.target.value)}
+                                        className="col-span-6 block w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm"
+                                    >
+                                        <option value="">Select an item...</option>
+                                        {inventory.map(i => (
+                                            <option key={i.id} value={i.id}>
+                                                {i.name} ({i.quantity.toFixed(2)} {i.unit} left)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="number"
+                                        placeholder="Qty"
+                                        value={consumed.quantityUsed}
+                                        onChange={e => handleInventoryChange(index, 'quantityUsed', Number(e.target.value))}
+                                        className="col-span-4 block w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm"
+                                        max={item?.quantity}
+                                    />
+                                    <div className="col-span-2">
+                                        <Button type="button" variant="danger" onClick={() => removeInventoryLine(index)} className="!text-xs !py-1 !px-2 w-full">Remove</Button>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return (
+                            <div key={index} className="text-sm flex justify-between p-1 bg-gray-50 rounded">
+                                <span>{item?.name || 'Unknown Item'}</span>
+                                <span>{consumed.quantityUsed} {item?.unit || ''}</span>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+            {isEditMode && (
+                <Button type="button" variant="secondary" onClick={addInventoryLine} className="mt-2 !text-xs !py-1 !px-2">Add Material</Button>
+            )}
+        </div>
+    );
     
     return (
-        <Modal isOpen={!!task} onClose={onClose} title={isEditing ? 'Edit Task' : task.title} size="2xl">
+        <Modal isOpen={!!task} onClose={onClose} title={isEditing ? 'Edit Task' : task.title} size="3xl">
             {isEditing ? (
                 <div className="space-y-4">
-                    {/* Simplified Edit Form */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input value={editedTask.title} onChange={e => setEditedTask({...editedTask, title: e.target.value})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900" />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select value={editedTask.status} onChange={e => setEditedTask({...editedTask, status: e.target.value as TaskStatus})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900">
-                             {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea value={editedTask.description} rows={4} onChange={e => setEditedTask({...editedTask, description: e.target.value})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900" />
+                        <textarea value={editedTask.description} rows={3} onChange={e => setEditedTask({...editedTask, description: e.target.value})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900" />
                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                            <select value={editedTask.assigneeId} onChange={e => setEditedTask({...editedTask, assigneeId: e.target.value})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900">
+                                {allUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                            </select>
+                        </div>
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select value={editedTask.status} onChange={e => setEditedTask({...editedTask, status: e.target.value as TaskStatus})} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900">
+                                 {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                     </div>
+                    {renderConsumedInventory(true)}
                     <div className="flex justify-end space-x-2 pt-2">
                         <Button variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
                         <Button onClick={handleUpdate}>Save Changes</Button>
@@ -86,11 +165,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                         <div><strong className="font-semibold text-gray-600 block">Due Date:</strong> {task.dueDate}</div>
                         <div><strong className="font-semibold text-gray-600 block">Status:</strong> {task.status}</div>
                         <div><strong className="font-semibold text-gray-600 block">Priority:</strong> {task.priority}</div>
-                        <div><strong className="font-semibold text-gray-600 block">Est. Cost:</strong> ${task.cost.toLocaleString()}</div>
+                        <div><strong className="font-semibold text-gray-600 block">Est. Manual Cost:</strong> ${task.cost.toLocaleString()}</div>
                         {task.reminderDate && (
                             <div className="col-span-2"><strong className="font-semibold text-gray-600 block">Reminder:</strong> {new Date(task.reminderDate).toLocaleString()}</div>
                         )}
                     </div>
+                    
+                    {renderConsumedInventory(false)}
                     
                     {/* Comments Section */}
                     <div className="pt-4 border-t">
